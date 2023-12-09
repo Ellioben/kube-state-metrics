@@ -41,6 +41,7 @@ var (
 )
 
 func csrMetricFamilies(allowAnnotationsList, allowLabelsList []string) []generator.FamilyGenerator {
+	//	availableStores[c] availableStore
 	return []generator.FamilyGenerator{
 		*generator.NewFamilyGeneratorWithStability(
 			descCSRAnnotationsName,

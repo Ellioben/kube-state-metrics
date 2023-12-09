@@ -270,8 +270,10 @@ func (b *Builder) Build() metricsstore.MetricsWriterList {
 	var activeStoreNames []string
 
 	for _, c := range b.enabledResources {
+		// availableStores[c]放着的就是默认的
 		constructor, ok := availableStores[c]
 		if ok {
+			// 封装metricsstore.MetricsWriterList
 			stores := cacheStoresToMetricStores(constructor(b))
 			activeStoreNames = append(activeStoreNames, c)
 			metricsWriters = append(metricsWriters, metricsstore.NewMetricsWriter(stores...))
@@ -519,6 +521,8 @@ func (b *Builder) buildStores(
 		if b.fieldSelectorFilter != "" {
 			klog.InfoS("FieldSelector is used", "fieldSelector", b.fieldSelectorFilter)
 		}
+		// 创建完store再创建listwatch对象，startReflector
+		// 通过这里监听资源，kms重写了store的add，会导致kms执行相关资源的指标筛选（familyGenerator）和生成，
 		listWatcher := listWatchFunc(b.kubeClient, v1.NamespaceAll, b.fieldSelectorFilter)
 		b.startReflector(expectedType, store, listWatcher, useAPIServerCache)
 		return []cache.Store{store}

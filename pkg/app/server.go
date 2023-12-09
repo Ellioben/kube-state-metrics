@@ -88,6 +88,7 @@ func RunKubeStateMetricsWrapper(ctx context.Context, opts *options.Options) erro
 // which implements customresource.RegistryFactory and pass all factories into this function.
 func RunKubeStateMetrics(ctx context.Context, opts *options.Options) error {
 	promLogger := promLogger{}
+	// registry the k8s metrics
 	ksmMetricsRegistry := prometheus.NewRegistry()
 	ksmMetricsRegistry.MustRegister(version.NewCollector("kube_state_metrics"))
 	durationVec := promauto.With(ksmMetricsRegistry).NewHistogramVec(
@@ -127,6 +128,7 @@ func RunKubeStateMetrics(ctx context.Context, opts *options.Options) error {
 		Name: "kube_state_metrics_custom_resource_state_cache",
 		Help: "Net amount of CRDs affecting the cache currently.",
 	})
+	// import
 	storeBuilder := store.NewBuilder()
 	storeBuilder.WithMetrics(ksmMetricsRegistry)
 
@@ -187,6 +189,7 @@ func RunKubeStateMetrics(ctx context.Context, opts *options.Options) error {
 	}
 
 	switch {
+	// crawl the specific metrics
 	case len(opts.Resources) == 0 && !opts.CustomResourcesOnly:
 		resources = append(resources, options.DefaultResources.AsSlice()...)
 		klog.InfoS("Used default resources")
@@ -201,7 +204,7 @@ func RunKubeStateMetrics(ctx context.Context, opts *options.Options) error {
 	if err := storeBuilder.WithEnabledResources(resources); err != nil {
 		return fmt.Errorf("failed to set up resources: %v", err)
 	}
-
+	// crawl feature's metrics form different filter feature like whitelist
 	namespaces := opts.Namespaces.GetNamespaces()
 	nsFieldSelector := namespaces.GetExcludeNSFieldSelector(opts.NamespacesDenylist)
 	nodeFieldSelector := opts.Node.GetNodeFieldSelector()
@@ -212,6 +215,7 @@ func RunKubeStateMetrics(ctx context.Context, opts *options.Options) error {
 	storeBuilder.WithNamespaces(namespaces)
 	storeBuilder.WithFieldSelectorFilter(merged)
 
+	// filter metrics（blacklist & whitelist）在指标层面做筛选
 	allowDenyList, err := allowdenylist.New(opts.MetricAllowlist, opts.MetricDenylist)
 	if err != nil {
 		return err
@@ -237,18 +241,22 @@ func RunKubeStateMetrics(ctx context.Context, opts *options.Options) error {
 		allowDenyList,
 		optInMetricFamilyFilter,
 	))
-
+	// 这行代码是设置storeBuilder是否使用API服务器的缓存。opts.UseAPIServerCache是一个布尔值，如果为true，则storeBuilder会使用API服务器的缓存。
 	storeBuilder.WithUsingAPIServerCache(opts.UseAPIServerCache)
+	// 这行代码是设置storeBuilder的生成存储函数。storeBuilder.DefaultGenerateStoresFunc()返回一个默认的生成存储函数，这个函数会被storeBuilder用来生成存储。
 	storeBuilder.WithGenerateStoresFunc(storeBuilder.DefaultGenerateStoresFunc())
+	// 这行代码启动一个进程收割器。进程收割器是用来处理子进程结束后的一些清理工作，例如回收子进程的资源，防止子进程成为僵尸进程。
 	proc.StartReaper()
 
 	storeBuilder.WithUtilOptions(opts)
+	// create client
 	kubeClient, err := util.CreateKubeClient(opts.Apiserver, opts.Kubeconfig)
 	if err != nil {
 		return fmt.Errorf("failed to create client: %v", err)
 	}
-	storeBuilder.WithKubeClient(kubeClient)
 
+	// 设置
+	storeBuilder.WithKubeClient(kubeClient)
 	storeBuilder.WithSharding(opts.Shard, opts.TotalShards)
 	if err := storeBuilder.WithAllowAnnotations(opts.AnnotationsAllowList); err != nil {
 		return fmt.Errorf("failed to set up annotations allowlist: %v", err)
@@ -262,6 +270,7 @@ func RunKubeStateMetrics(ctx context.Context, opts *options.Options) error {
 		collectors.NewGoCollector(),
 	)
 
+	// oklogrun是普罗米修斯编排的流程引擎
 	var g run.Group
 
 	m := metricshandler.New(
@@ -274,6 +283,7 @@ func RunKubeStateMetrics(ctx context.Context, opts *options.Options) error {
 	if config == nil {
 		ctxMetricsHandler, cancel := context.WithCancel(ctx)
 		g.Add(func() error {
+			// metrics handler run
 			return m.Run(ctxMetricsHandler)
 		}, func(error) {
 			cancel()

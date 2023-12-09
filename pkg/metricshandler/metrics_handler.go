@@ -97,6 +97,7 @@ func (m *MetricsHandler) Run(ctx context.Context) error {
 
 	if !autoSharding {
 		klog.InfoS("Autosharding disabled")
+
 		m.ConfigureSharding(ctx, m.opts.Shard, m.opts.TotalShards)
 		// Wait for context to be done, metrics will be served until then.
 		<-ctx.Done()
@@ -208,8 +209,12 @@ func (m *MetricsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// m.metricsWriters
+	//MetricsWriter 是一个接口，它定义了写入指标数据的方法。MetricsWriterList 则是一个包含多个 MetricsWriter 对象的列表。
+	//在这个上下文中，m.metricsWriters 被用于在 HTTP 请求处理过程中，将生成的指标数据写入 HTTP 响应。
 	m.metricsWriters = metricsstore.SanitizeHeaders(m.metricsWriters)
 	for _, w := range m.metricsWriters {
+		// write result to w
 		err := w.WriteAll(writer)
 		if err != nil {
 			klog.ErrorS(err, "Failed to write metrics")
