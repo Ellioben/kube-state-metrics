@@ -245,7 +245,7 @@ func RunKubeStateMetrics(ctx context.Context, opts *options.Options) error {
 	storeBuilder.WithUsingAPIServerCache(opts.UseAPIServerCache)
 	// 设置storeBuilder的生成存储函数。生成存储函数，这个函数会被storeBuilder用来生成存储。后续会用来处理不同的存储指标
 	// import （availableStores）
-	storeBuilder.WithGenerateStoresFunc(storeBuilder.DefaultGenerateStoresFunc())
+	storeBuilder.WithGenerateStoresFunc(storeBuilder.DefaultGenerateStoresFunc()) //call the listwatch
 	// 启动一个进程收割器。进程收割器是用来处理子进程结束后的一些清理工作，例如回收子进程的资源，防止子进程成为僵尸进程。
 	proc.StartReaper()
 

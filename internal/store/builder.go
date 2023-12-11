@@ -525,7 +525,7 @@ func (b *Builder) buildStores(
 		if b.fieldSelectorFilter != "" {
 			klog.InfoS("FieldSelector is used", "fieldSelector", b.fieldSelectorFilter)
 		}
-		// 创建完store再创建listwatch对象，startReflector
+		// 创建完store再创建listwatch对象，再startReflector
 		// 通过这里监听资源，kms重写了store的add，会导致kms执行相关资源的指标筛选（familyGenerator）和生成，
 		listWatcher := listWatchFunc(b.kubeClient, v1.NamespaceAll, b.fieldSelectorFilter)
 		b.startReflector(expectedType, store, listWatcher, useAPIServerCache)
@@ -610,6 +610,7 @@ func (b *Builder) startReflector(
 	listWatcher cache.ListerWatcher,
 	useAPIServerCache bool,
 ) {
+	// httpserver 中的 availableStore
 	instrumentedListWatch := watch.NewInstrumentedListerWatcher(listWatcher, b.listWatchMetrics, reflect.TypeOf(expectedType).String(), useAPIServerCache)
 	reflector := cache.NewReflector(sharding.NewShardedListWatch(b.shard, b.totalShards, instrumentedListWatch), expectedType, store, 0)
 	go reflector.Run(b.ctx.Done())
