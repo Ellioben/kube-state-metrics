@@ -241,11 +241,12 @@ func RunKubeStateMetrics(ctx context.Context, opts *options.Options) error {
 		allowDenyList,
 		optInMetricFamilyFilter,
 	))
-	// 这行代码是设置storeBuilder是否使用API服务器的缓存。opts.UseAPIServerCache是一个布尔值，如果为true，则storeBuilder会使用API服务器的缓存。
+	// 设置storeBuilder是否使用API服务器的缓存。opts.UseAPIServerCache是一个布尔值，如果为true，则storeBuilder会使用API服务器的缓存。
 	storeBuilder.WithUsingAPIServerCache(opts.UseAPIServerCache)
-	// 这行代码是设置storeBuilder的生成存储函数。storeBuilder.DefaultGenerateStoresFunc()返回一个默认的生成存储函数，这个函数会被storeBuilder用来生成存储。
+	// 设置storeBuilder的生成存储函数。生成存储函数，这个函数会被storeBuilder用来生成存储。后续会用来处理不同的存储指标
+	// import （availableStores）
 	storeBuilder.WithGenerateStoresFunc(storeBuilder.DefaultGenerateStoresFunc())
-	// 这行代码启动一个进程收割器。进程收割器是用来处理子进程结束后的一些清理工作，例如回收子进程的资源，防止子进程成为僵尸进程。
+	// 启动一个进程收割器。进程收割器是用来处理子进程结束后的一些清理工作，例如回收子进程的资源，防止子进程成为僵尸进程。
 	proc.StartReaper()
 
 	storeBuilder.WithUtilOptions(opts)
@@ -283,7 +284,7 @@ func RunKubeStateMetrics(ctx context.Context, opts *options.Options) error {
 	if config == nil {
 		ctxMetricsHandler, cancel := context.WithCancel(ctx)
 		g.Add(func() error {
-			// metrics handler run
+			// *****metrics handler run*****
 			return m.Run(ctxMetricsHandler)
 		}, func(error) {
 			cancel()

@@ -270,7 +270,7 @@ func (b *Builder) Build() metricsstore.MetricsWriterList {
 	var activeStoreNames []string
 
 	for _, c := range b.enabledResources {
-		// availableStores[c]放着的就是默认的
+		// availableStores[c]是前面默认的
 		constructor, ok := availableStores[c]
 		if ok {
 			// 封装metricsstore.MetricsWriterList
@@ -468,7 +468,11 @@ func (b *Builder) buildPodStores() []cache.Store {
 }
 
 func (b *Builder) buildCsrStores() []cache.Store {
-	return b.buildStoresFunc(csrMetricFamilies(b.allowAnnotationsList["certificatesigningrequests"], b.allowLabelsList["certificatesigningrequests"]), &certv1.CertificateSigningRequest{}, createCSRListWatch, b.useAPIServerCache)
+	// buildStoresFunc
+	return b.buildStoresFunc(csrMetricFamilies(b.allowAnnotationsList["certificatesigningrequests"],
+		b.allowLabelsList["certificatesigningrequests"]),
+		&certv1.CertificateSigningRequest{},
+		createCSRListWatch, b.useAPIServerCache)
 }
 
 func (b *Builder) buildValidatingWebhookConfigurationStores() []cache.Store {
